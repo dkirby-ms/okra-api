@@ -1,0 +1,886 @@
+openapi: 3.0.3
+info:
+  title: OKR Management API
+  description: RESTful API for managing Objectives and Key Results (OKRs)
+  version: 1.0.0
+  contact:
+    name: Okra API Team
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+tags:
+  - name: objectives
+    description: Objective management operations
+  - name: key-results
+    description: Key Result management operations
+  - name: time-periods
+    description: Time Period management operations
+  - name: reports
+    description: Progress reporting operations
+
+paths:
+  # ============ OBJECTIVES ============
+  /objectives:
+    get:
+      tags: [objectives]
+      operationId: listObjectives
+      summary: List objectives with pagination and filtering
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/CursorParam'
+        - name: timePeriodId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by time period
+        - name: ownerType
+          in: query
+          schema:
+            $ref: '#/components/schemas/OwnerType'
+        - name: ownerId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ObjectiveStatus'
+          description: Filter by computed status
+        - name: includeKeyResults
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Paginated list of objectives
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedObjectives'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags: [objectives]
+      operationId: createObjective
+      summary: Create a new objective
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateObjectiveRequest'
+      responses:
+        '201':
+          description: Objective created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectiveResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /objectives/{objectiveId}:
+    parameters:
+      - $ref: '#/components/parameters/ObjectiveIdParam'
+    
+    get:
+      tags: [objectives]
+      operationId: getObjective
+      summary: Get objective by ID
+      parameters:
+        - name: includeKeyResults
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Objective details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectiveResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    patch:
+      tags: [objectives]
+      operationId: updateObjective
+      summary: Update an objective
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateObjectiveRequest'
+      responses:
+        '200':
+          description: Objective updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectiveResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    
+    delete:
+      tags: [objectives]
+      operationId: deleteObjective
+      summary: Delete an objective
+      parameters:
+        - name: force
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: If true, cascade delete all key results
+      responses:
+        '204':
+          description: Objective deleted
+        '400':
+          description: Cannot delete - has key results (use force=true)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============ KEY RESULTS ============
+  /objectives/{objectiveId}/key-results:
+    parameters:
+      - $ref: '#/components/parameters/ObjectiveIdParam'
+    
+    get:
+      tags: [key-results]
+      operationId: listKeyResults
+      summary: List key results for an objective
+      responses:
+        '200':
+          description: List of key results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/KeyResultResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    post:
+      tags: [key-results]
+      operationId: createKeyResult
+      summary: Create a new key result
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateKeyResultRequest'
+      responses:
+        '201':
+          description: Key result created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeyResultResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /key-results/{keyResultId}:
+    parameters:
+      - $ref: '#/components/parameters/KeyResultIdParam'
+    
+    get:
+      tags: [key-results]
+      operationId: getKeyResult
+      summary: Get key result by ID
+      responses:
+        '200':
+          description: Key result details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeyResultResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    patch:
+      tags: [key-results]
+      operationId: updateKeyResult
+      summary: Update a key result
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateKeyResultRequest'
+      responses:
+        '200':
+          description: Key result updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeyResultResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    
+    delete:
+      tags: [key-results]
+      operationId: deleteKeyResult
+      summary: Delete a key result
+      responses:
+        '204':
+          description: Key result deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /key-results/{keyResultId}/progress:
+    parameters:
+      - $ref: '#/components/parameters/KeyResultIdParam'
+    
+    patch:
+      tags: [key-results]
+      operationId: updateKeyResultProgress
+      summary: Update key result current value
+      description: Convenience endpoint for updating only the progress
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentValue, version]
+              properties:
+                currentValue:
+                  type: number
+                  description: New current value
+                version:
+                  type: integer
+                  description: Current version for optimistic locking
+      responses:
+        '200':
+          description: Progress updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeyResultResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  # ============ TIME PERIODS ============
+  /time-periods:
+    get:
+      tags: [time-periods]
+      operationId: listTimePeriods
+      summary: List time periods
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/TimePeriodStatus'
+      responses:
+        '200':
+          description: List of time periods
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TimePeriodResponse'
+    
+    post:
+      tags: [time-periods]
+      operationId: createTimePeriod
+      summary: Create a new time period
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTimePeriodRequest'
+      responses:
+        '201':
+          description: Time period created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimePeriodResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /time-periods/{timePeriodId}:
+    parameters:
+      - $ref: '#/components/parameters/TimePeriodIdParam'
+    
+    get:
+      tags: [time-periods]
+      operationId: getTimePeriod
+      summary: Get time period by ID
+      responses:
+        '200':
+          description: Time period details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimePeriodResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    patch:
+      tags: [time-periods]
+      operationId: updateTimePeriod
+      summary: Update a time period
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTimePeriodRequest'
+      responses:
+        '200':
+          description: Time period updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimePeriodResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /time-periods/{timePeriodId}/archive:
+    parameters:
+      - $ref: '#/components/parameters/TimePeriodIdParam'
+    
+    post:
+      tags: [time-periods]
+      operationId: archiveTimePeriod
+      summary: Archive a time period
+      responses:
+        '200':
+          description: Time period archived
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimePeriodResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============ REPORTS ============
+  /reports/progress-summary:
+    get:
+      tags: [reports]
+      operationId: getProgressSummary
+      summary: Get progress summary for objectives
+      parameters:
+        - name: timePeriodId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by time period
+        - name: ownerType
+          in: query
+          schema:
+            $ref: '#/components/schemas/OwnerType'
+        - name: ownerId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Progress summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressSummaryResponse'
+
+  /reports/status-distribution:
+    get:
+      tags: [reports]
+      operationId: getStatusDistribution
+      summary: Get status distribution across objectives
+      parameters:
+        - name: timePeriodId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Status distribution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusDistributionResponse'
+
+components:
+  parameters:
+    ObjectiveIdParam:
+      name: objectiveId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    
+    KeyResultIdParam:
+      name: keyResultId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    
+    TimePeriodIdParam:
+      name: timePeriodId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    
+    CursorParam:
+      name: cursor
+      in: query
+      schema:
+        type: string
+      description: Pagination cursor from previous response
+
+  schemas:
+    # ===== ENUMS =====
+    OwnerType:
+      type: string
+      enum: [user, team, organization]
+    
+    MetricType:
+      type: string
+      enum: [number, percentage, currency, boolean]
+    
+    ObjectiveStatus:
+      type: string
+      enum: [on-track, at-risk, behind, complete]
+    
+    TimePeriodStatus:
+      type: string
+      enum: [active, archived]
+
+    # ===== REQUEST SCHEMAS =====
+    CreateObjectiveRequest:
+      type: object
+      required: [title, ownerType, ownerId, startDate, endDate]
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          minLength: 1
+        description:
+          type: string
+        ownerType:
+          $ref: '#/components/schemas/OwnerType'
+        ownerId:
+          type: string
+          format: uuid
+        parentId:
+          type: string
+          format: uuid
+          description: Parent objective for hierarchical alignment
+        timePeriodId:
+          type: string
+          format: uuid
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+    
+    UpdateObjectiveRequest:
+      type: object
+      required: [version]
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          minLength: 1
+        description:
+          type: string
+        parentId:
+          type: string
+          format: uuid
+          nullable: true
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        version:
+          type: integer
+          description: Current version for optimistic locking
+    
+    CreateKeyResultRequest:
+      type: object
+      required: [title, metricType, targetValue]
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          minLength: 1
+        metricType:
+          $ref: '#/components/schemas/MetricType'
+        targetValue:
+          type: number
+          exclusiveMinimum: 0
+        currentValue:
+          type: number
+          default: 0
+        unitLabel:
+          type: string
+          maxLength: 50
+          description: Display label for units (e.g., "USD", "users")
+    
+    UpdateKeyResultRequest:
+      type: object
+      required: [version]
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          minLength: 1
+        targetValue:
+          type: number
+          exclusiveMinimum: 0
+        currentValue:
+          type: number
+        unitLabel:
+          type: string
+          maxLength: 50
+        version:
+          type: integer
+          description: Current version for optimistic locking
+    
+    CreateTimePeriodRequest:
+      type: object
+      required: [name, startDate, endDate]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+    
+    UpdateTimePeriodRequest:
+      type: object
+      required: [version]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        version:
+          type: integer
+
+    # ===== RESPONSE SCHEMAS =====
+    ObjectiveResponse:
+      type: object
+      required: [id, title, ownerType, ownerId, startDate, endDate, progress, status, createdAt, updatedAt, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        ownerType:
+          $ref: '#/components/schemas/OwnerType'
+        ownerId:
+          type: string
+          format: uuid
+        parentId:
+          type: string
+          format: uuid
+          nullable: true
+        timePeriodId:
+          type: string
+          format: uuid
+          nullable: true
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        progress:
+          type: number
+          minimum: 0
+          description: Computed progress percentage (0-100+)
+        status:
+          $ref: '#/components/schemas/ObjectiveStatus'
+        keyResults:
+          type: array
+          items:
+            $ref: '#/components/schemas/KeyResultResponse'
+          description: Included when requested
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+    
+    KeyResultResponse:
+      type: object
+      required: [id, objectiveId, title, metricType, targetValue, currentValue, completionPercentage, isComplete, createdAt, updatedAt, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        objectiveId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        metricType:
+          $ref: '#/components/schemas/MetricType'
+        targetValue:
+          type: number
+        currentValue:
+          type: number
+        unitLabel:
+          type: string
+          nullable: true
+        completionPercentage:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Computed completion (capped at 100 for display)
+        isComplete:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+    
+    TimePeriodResponse:
+      type: object
+      required: [id, name, startDate, endDate, status, createdAt, updatedAt, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/TimePeriodStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+    
+    PaginatedObjectives:
+      type: object
+      required: [data, cursor, hasMore]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ObjectiveResponse'
+        cursor:
+          type: string
+          nullable: true
+          description: Cursor for next page, null if no more results
+        hasMore:
+          type: boolean
+    
+    ProgressSummaryResponse:
+      type: object
+      required: [objectives, overallProgress]
+      properties:
+        objectives:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              title:
+                type: string
+              progress:
+                type: number
+              status:
+                $ref: '#/components/schemas/ObjectiveStatus'
+              keyResultCount:
+                type: integer
+        overallProgress:
+          type: number
+          description: Average progress across all objectives
+        totalObjectives:
+          type: integer
+    
+    StatusDistributionResponse:
+      type: object
+      required: [distribution, total]
+      properties:
+        distribution:
+          type: object
+          properties:
+            onTrack:
+              type: integer
+            atRisk:
+              type: integer
+            behind:
+              type: integer
+            complete:
+              type: integer
+        total:
+          type: integer
+
+    # ===== ERROR SCHEMAS =====
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+            message:
+              type: string
+              description: Human-readable error message
+            details:
+              type: object
+              additionalProperties: true
+              description: Additional error context
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Request validation failed
+              details:
+                violations:
+                  - field: endDate
+                    message: End date must be after start date
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: NOT_FOUND
+              message: Resource not found
+    
+    Conflict:
+      description: Conflict - resource was modified
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: CONFLICT
+              message: Resource was modified. Please refresh and retry.
+              details:
+                currentVersion: 3
+    
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: Authentication required
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []

@@ -1,50 +1,98 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+  SYNC IMPACT REPORT
+  ==================
+  Version change: 1.0.0 → 1.1.0 (minor: expanded type safety guidance)
+  Modified principles:
+    - I. Code Quality: Expanded Type Safety into comprehensive strong typing requirements
+  Added sections: None
+  Removed sections: None
+  Templates requiring updates:
+    - plan-template.md: ✅ Constitution Check section compatible
+    - spec-template.md: ✅ User story structure compatible
+    - tasks-template.md: ✅ Phase structure compatible
+  Follow-up TODOs: None
+-->
+
+# Okra API Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Code Quality (NON-NEGOTIABLE)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+All code MUST meet rigorous quality standards before merging to main:
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+- **Test Coverage**: Every feature MUST have unit tests; critical paths MUST have integration tests
+- **Strong Typing (NON-NEGOTIABLE)**: All code MUST be strongly typed end-to-end:
+  - TypeScript MUST use `strict: true` with no `any` types except when interfacing with untyped external libraries (must be isolated and documented)
+  - Python MUST use type hints on all function signatures and class attributes; `mypy --strict` MUST pass
+  - Database schemas MUST use explicit types; no implicit conversions or `text` fields for structured data
+  - API contracts MUST define explicit types for all request/response fields via OpenAPI schemas
+  - DTOs and domain models MUST NOT use generic `object` or `dict` types; all fields MUST be explicitly typed
+- **Linting**: All code MUST pass configured linters with zero warnings; no suppression without documented justification
+- **Code Review**: All changes MUST be peer-reviewed; reviewers MUST verify adherence to this constitution
+- **Documentation**: Public APIs MUST have docstrings/JSDoc; complex logic MUST have inline comments explaining "why"
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**Rationale**: Technical debt compounds exponentially. Strong typing catches errors at compile time rather than runtime, enables better IDE support and refactoring, and serves as living documentation. Investing in quality upfront prevents costly rewrites and ensures maintainability as the system scales.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### II. UX Consistency
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+All user-facing interfaces MUST deliver a consistent, predictable experience:
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- **API Contracts**: All endpoints MUST follow RESTful conventions with consistent naming (kebab-case paths, camelCase JSON)
+- **Error Responses**: All errors MUST use a standardized format: `{ "error": { "code": string, "message": string, "details"?: object } }`
+- **Pagination**: All list endpoints MUST support cursor-based pagination with consistent parameters (`limit`, `cursor`)
+- **Versioning**: All breaking API changes MUST increment the major version; deprecations MUST provide migration paths
+- **Response Times**: All synchronous endpoints MUST respond within 500ms p95; long operations MUST use async patterns
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+**Rationale**: Consistent APIs reduce integration friction, minimize client-side bugs, and build developer trust. Predictable behavior accelerates adoption.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### III. Microservices Architecture
+
+All services MUST be designed for independent deployment and horizontal scalability:
+
+- **Service Boundaries**: Each service MUST own its data; cross-service data access MUST use APIs, never direct database queries
+- **Loose Coupling**: Services MUST communicate via well-defined contracts (OpenAPI specs); shared libraries MUST be versioned
+- **Resilience**: All inter-service calls MUST implement timeouts, retries with exponential backoff, and circuit breakers
+- **Observability**: All services MUST emit structured logs, metrics, and distributed traces (correlation IDs required)
+- **Statelessness**: All services MUST be stateless; session state MUST be externalized to shared stores (Redis, database)
+
+**Rationale**: Microservices enable independent scaling, deployment, and team autonomy. Proper boundaries prevent cascading failures and enable graceful degradation.
+
+## Quality Gates
+
+All pull requests MUST pass these gates before merge:
+
+1. **Build**: Clean compilation with zero warnings
+2. **Tests**: All tests pass; coverage MUST NOT decrease for modified files
+3. **Lint**: Zero linting errors or warnings
+4. **Type Check**: Zero type errors; `strict` mode required; no `any` escape hatches without documented justification
+5. **Contract Validation**: API changes MUST update OpenAPI specs; breaking changes MUST be flagged
+6. **Security Scan**: No new high/critical vulnerabilities introduced
+
+## Development Workflow
+
+The following workflow MUST be followed for all feature development:
+
+1. **Specification**: Create feature spec using `/speckit.specify` before implementation
+2. **Planning**: Generate implementation plan using `/speckit.plan` with constitution compliance check
+3. **Task Breakdown**: Create granular tasks using `/speckit.tasks` organized by user story
+4. **Implementation**: Follow TDD cycle—write failing tests first, then implement, then refactor
+5. **Review**: Peer review MUST verify constitution compliance alongside code correctness
+6. **Documentation**: Update relevant docs before marking complete
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution is the authoritative source for development standards. All practices MUST align with these principles.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Amendment Process**:
+- Proposed changes MUST be documented with rationale and impact analysis
+- Changes MUST be reviewed by at least two senior team members
+- Breaking changes to principles MUST include migration plans for existing code
+- Version MUST be incremented per semantic versioning rules
+
+**Compliance**:
+- All PRs MUST include a constitution compliance statement in the description
+- Violations MUST be documented and remediated within the current sprint
+- Repeated violations trigger process review
+
+**Version**: 1.1.0 | **Ratified**: 2026-01-18 | **Last Amended**: 2026-01-18
