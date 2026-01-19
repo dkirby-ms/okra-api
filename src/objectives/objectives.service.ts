@@ -344,6 +344,14 @@ export class ObjectivesService {
     const progress = await this.calculateProgress(objective.id);
     const status = this.calculateStatus(objective, progress);
 
+    // PostgreSQL 'date' type returns strings (YYYY-MM-DD), not Date objects
+    const startDate = objective.startDate instanceof Date 
+      ? objective.startDate.toISOString().split('T')[0] 
+      : String(objective.startDate);
+    const endDate = objective.endDate instanceof Date 
+      ? objective.endDate.toISOString().split('T')[0] 
+      : String(objective.endDate);
+
     return {
       id: objective.id,
       title: objective.title,
@@ -352,8 +360,8 @@ export class ObjectivesService {
       ownerId: objective.ownerId,
       parentId: objective.parentId,
       timePeriodId: objective.timePeriodId,
-      startDate: objective.startDate.toISOString().split('T')[0],
-      endDate: objective.endDate.toISOString().split('T')[0],
+      startDate,
+      endDate,
       progress,
       status,
       createdAt: objective.createdAt.toISOString(),

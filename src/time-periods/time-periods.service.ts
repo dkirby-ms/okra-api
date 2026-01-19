@@ -225,11 +225,19 @@ export class TimePeriodsService {
    * Convert entity to response DTO.
    */
   private toResponseDto(timePeriod: TimePeriod): TimePeriodResponseDto {
+    // PostgreSQL 'date' type returns strings (YYYY-MM-DD), not Date objects
+    const startDate = timePeriod.startDate instanceof Date 
+      ? timePeriod.startDate.toISOString().split('T')[0] 
+      : String(timePeriod.startDate);
+    const endDate = timePeriod.endDate instanceof Date 
+      ? timePeriod.endDate.toISOString().split('T')[0] 
+      : String(timePeriod.endDate);
+    
     return {
       id: timePeriod.id,
       name: timePeriod.name,
-      startDate: timePeriod.startDate.toISOString().split('T')[0],
-      endDate: timePeriod.endDate.toISOString().split('T')[0],
+      startDate,
+      endDate,
       status: timePeriod.status,
       createdAt: timePeriod.createdAt.toISOString(),
       updatedAt: timePeriod.updatedAt.toISOString(),
