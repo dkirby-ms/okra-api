@@ -61,8 +61,8 @@ export class TenantInterceptor implements NestInterceptor {
       if (process.env.NODE_ENV === 'production') {
         throw new UnauthorizedException('Tenant context is required');
       }
-      // Use a default tenant ID for development
-      request.tenantId = 'dev-tenant-00000000-0000-0000-0000-000000000000';
+      // Use a default tenant ID for development (must be valid UUID format)
+      request.tenantId = '00000000-0000-0000-0000-000000000000';
     } else {
       request.tenantId = effectiveTenantId;
     }
