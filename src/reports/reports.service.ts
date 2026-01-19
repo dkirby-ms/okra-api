@@ -8,6 +8,7 @@ import { StatusDistributionDto, StatusBucketDto } from './dto/status-distributio
 import { ReportQueryDto } from './dto/report-query.dto.js';
 import { ObjectiveStatus } from '../common/enums/index.js';
 import { getCurrentTenantId } from '../common/interceptors/tenant.interceptor.js';
+import { parseLocalDate, formatDateString } from '../common/utils/date.util.js';
 
 /**
  * Service for generating OKR progress reports and analytics.
@@ -187,8 +188,8 @@ export class ReportsService {
     }
 
     const now = new Date();
-    const start = new Date(objective.startDate);
-    const end = new Date(objective.endDate);
+    const start = parseLocalDate(formatDateString(objective.startDate));
+    const end = parseLocalDate(formatDateString(objective.endDate));
 
     if (now < start) {
       return ObjectiveStatus.ON_TRACK;

@@ -16,6 +16,7 @@ import { TimePeriodStatus } from '../common/enums/index.js';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto.js';
 import { encodeCursor, decodeCursor } from '../common/utils/pagination.util.js';
 import { getCurrentTenantId } from '../common/interceptors/tenant.interceptor.js';
+import { parseLocalDate, compareDateStrings, formatDateString } from '../common/utils/date.util.js';
 
 /**
  * Service for managing Time Periods.
@@ -35,8 +36,8 @@ export class TimePeriodsService {
   async create(dto: CreateTimePeriodDto): Promise<TimePeriodResponseDto> {
     const tenantId = getCurrentTenantId();
 
-    // Validate dates
-    if (new Date(dto.startDate) >= new Date(dto.endDate)) {
+    // Validate dates using string comparison (YYYY-MM-DD format)
+    if (compareDateStrings(dto.startDate, dto.endDate) >= 0) {
       throw new BadRequestException('startDate must be before endDate');
     }
 
@@ -54,8 +55,8 @@ export class TimePeriodsService {
     const timePeriod = this.timePeriodRepository.create({
       ...dto,
       tenantId,
-      startDate: new Date(dto.startDate),
-      endDate: new Date(dto.endDate),
+      startDate: parseLocalDate(dto.startDate),
+      endDate: parseLocalDate(dto.endDate),
     });
 
     const saved = await this.timePeriodRepository.save(timePeriod);
@@ -150,10 +151,10 @@ export class TimePeriodsService {
       });
     }
 
-    // Validate dates
-    const newStartDate = dto.startDate ? new Date(dto.startDate) : timePeriod.startDate;
-    const newEndDate = dto.endDate ? new Date(dto.endDate) : timePeriod.endDate;
-    if (newStartDate >= newEndDate) {
+    // Validate dates using string comparison (YYYY-MM-DD format)
+    const newStartDate = dto.startDate ?? formatDateString(timePeriod.startDate);
+    const newEndDate = dto.endDate ?? formatDateString(timePeriod.endDate);
+    if (compareDateStrings(newStartDate, newEndDate) >= 0) {
       throw new BadRequestException('startDate must be before endDate');
     }
 
@@ -173,8 +174,8 @@ export class TimePeriodsService {
     // Apply updates
     Object.assign(timePeriod, {
       ...(dto.name !== undefined && { name: dto.name }),
-      ...(dto.startDate !== undefined && { startDate: new Date(dto.startDate) }),
-      ...(dto.endDate !== undefined && { endDate: new Date(dto.endDate) }),
+      ...(dto.startDate !== undefined && { startDate: parseLocalDate(dto.startDate) }),
+      ...(dto.endDate !== undefined && { endDate: parseLocalDate(dto.endDate) }),
       ...(dto.status !== undefined && { status: dto.status }),
     });
 
@@ -225,13 +226,8 @@ export class TimePeriodsService {
    * Convert entity to response DTO.
    */
   private toResponseDto(timePeriod: TimePeriod): TimePeriodResponseDto {
-    // PostgreSQL 'date' type returns strings (YYYY-MM-DD), not Date objects
-    const startDate = timePeriod.startDate instanceof Date 
-      ? timePeriod.startDate.toISOString().split('T')[0] 
-      : String(timePeriod.startDate);
-    const endDate = timePeriod.endDate instanceof Date 
-      ? timePeriod.endDate.toISOString().split('T')[0] 
-      : String(timePeriod.endDate);
+    const startDate = formatDateString(timePeriod.startDate);
+    const endDate = formatDateString(timePeriod.endDate);
     
     return {
       id: timePeriod.id,

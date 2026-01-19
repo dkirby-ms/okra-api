@@ -17,6 +17,7 @@ import { ObjectiveStatus } from '../common/enums/index.js';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto.js';
 import { encodeCursor, decodeCursor } from '../common/utils/pagination.util.js';
 import { getCurrentTenantId } from '../common/interceptors/tenant.interceptor.js';
+import { parseLocalDate, compareDateStrings, formatDateString } from '../common/utils/date.util.js';
 
 /**
  * Service for managing Objectives (CRUD, progress/status calculation, pagination).
@@ -38,8 +39,8 @@ export class ObjectivesService {
   async create(dto: CreateObjectiveDto): Promise<ObjectiveResponseDto> {
     const tenantId = getCurrentTenantId();
 
-    // Validate dates
-    if (new Date(dto.startDate) >= new Date(dto.endDate)) {
+    // Validate dates using string comparison (YYYY-MM-DD format)
+    if (compareDateStrings(dto.startDate, dto.endDate) >= 0) {
       throw new BadRequestException('startDate must be before endDate');
     }
 
@@ -56,8 +57,8 @@ export class ObjectivesService {
     const objective = this.objectiveRepository.create({
       ...dto,
       tenantId,
-      startDate: new Date(dto.startDate),
-      endDate: new Date(dto.endDate),
+      startDate: parseLocalDate(dto.startDate),
+      endDate: parseLocalDate(dto.endDate),
     });
 
     const saved = await this.objectiveRepository.save(objective);
@@ -178,10 +179,10 @@ export class ObjectivesService {
       });
     }
 
-    // Validate dates if both provided or mixed with existing
-    const newStartDate = dto.startDate ? new Date(dto.startDate) : objective.startDate;
-    const newEndDate = dto.endDate ? new Date(dto.endDate) : objective.endDate;
-    if (newStartDate >= newEndDate) {
+    // Validate dates using string comparison (YYYY-MM-DD format)
+    const newStartDate = dto.startDate ?? formatDateString(objective.startDate);
+    const newEndDate = dto.endDate ?? formatDateString(objective.endDate);
+    if (compareDateStrings(newStartDate, newEndDate) >= 0) {
       throw new BadRequestException('startDate must be before endDate');
     }
 
@@ -209,8 +210,8 @@ export class ObjectivesService {
       ...(dto.title !== undefined && { title: dto.title }),
       ...(dto.description !== undefined && { description: dto.description }),
       ...(dto.parentId !== undefined && { parentId: dto.parentId }),
-      ...(dto.startDate !== undefined && { startDate: new Date(dto.startDate) }),
-      ...(dto.endDate !== undefined && { endDate: new Date(dto.endDate) }),
+      ...(dto.startDate !== undefined && { startDate: parseLocalDate(dto.startDate) }),
+      ...(dto.endDate !== undefined && { endDate: parseLocalDate(dto.endDate) }),
     });
 
     const saved = await this.objectiveRepository.save(objective);
@@ -307,8 +308,8 @@ export class ObjectivesService {
     }
 
     const now = new Date();
-    const start = new Date(objective.startDate);
-    const end = new Date(objective.endDate);
+    const start = parseLocalDate(formatDateString(objective.startDate));
+    const end = parseLocalDate(formatDateString(objective.endDate));
 
     // If not started yet, on-track
     if (now < start) {
@@ -344,13 +345,8 @@ export class ObjectivesService {
     const progress = await this.calculateProgress(objective.id);
     const status = this.calculateStatus(objective, progress);
 
-    // PostgreSQL 'date' type returns strings (YYYY-MM-DD), not Date objects
-    const startDate = objective.startDate instanceof Date 
-      ? objective.startDate.toISOString().split('T')[0] 
-      : String(objective.startDate);
-    const endDate = objective.endDate instanceof Date 
-      ? objective.endDate.toISOString().split('T')[0] 
-      : String(objective.endDate);
+    const startDate = formatDateString(objective.startDate);
+    const endDate = formatDateString(objective.endDate);
 
     return {
       id: objective.id,
